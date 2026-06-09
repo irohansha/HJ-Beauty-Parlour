@@ -225,6 +225,9 @@ function App() {
   const [searchPhone, setSearchPhone] = useState('');
   const [searchedBookings, setSearchedBookings] = useState(null);
 
+  // Booking page active service tab state
+  const [bookingServiceTab, setBookingServiceTab] = useState('hair');
+
   // Scroll Listener for Navbar
   useEffect(() => {
     const handleScroll = () => {
@@ -304,9 +307,12 @@ function App() {
       return;
     }
 
-    const selectedSvs = selectedServices.length > 0
-      ? selectedServices
-      : [{ id: 'general', name: 'Consultation & Custom Styling', price: 0, duration: 15 }];
+    if (selectedServices.length === 0) {
+      alert("Please select at least one service from the list to book your appointment.");
+      return;
+    }
+
+    const selectedSvs = selectedServices;
 
     const bookingId = 'HJ-' + Math.floor(1000 + Math.random() * 9000);
 
@@ -675,21 +681,109 @@ function App() {
       )}
 
       {currentPage === 'booking' && (
-        <section id="booking" className="booking-section">
+<section id="booking" className="booking-section">
           <div className="container">
             <h2>Secure Your Appointment Slot</h2>
 
             <div className="booking-wrapper glass-panel">
               <form onSubmit={handleBookingSubmit} className="booking-form">
 
-                {selectedServices.length > 0 && (
-                  <div className="selected-services-summary">
-                    <div className="selected-services-summary-title">Selected Services:</div>
-                    <div style={{ fontSize: '0.9rem', color: 'var(--cream)' }}>
-                      {selectedServices.map(s => s.name).join(', ')} (₹{finalPrice})
-                    </div>
+                {/* Interactive Service Selector */}
+                <div className="booking-service-selector-group form-group">
+                  <label>Select Services for Your Appointment</label>
+                  <p className="field-desc" style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', marginTop: '-0.25rem', marginBottom: '0.5rem' }}>
+                    Choose one or more services. Select 3 or more services to unlock a <strong>10% package discount</strong>!
+                  </p>
+                  
+                  {/* Category tabs */}
+                  <div className="booking-service-tabs">
+                    {Object.keys(SERVICES_DATA).map(category => (
+                      <button
+                        key={category}
+                        type="button"
+                        className={`booking-tab-btn ${bookingServiceTab === category ? 'active' : ''}`}
+                        onClick={() => setBookingServiceTab(category)}
+                      >
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                      </button>
+                    ))}
                   </div>
-                )}
+
+                  {/* Services list under active tab */}
+                  <div className="booking-services-list">
+                    {SERVICES_DATA[bookingServiceTab].map(svc => {
+                      const isChecked = selectedServices.some(item => item.id === svc.id);
+                      return (
+                        <div 
+                          key={svc.id} 
+                          className={`booking-service-item ${isChecked ? 'selected' : ''}`}
+                          onClick={() => handleToggleService(svc)}
+                        >
+                          <div className="booking-service-item-left">
+                            <input 
+                              type="checkbox" 
+                              checked={isChecked} 
+                              onChange={() => {}} /* Handled by item onClick */
+                              onClick={(e) => e.stopPropagation()} 
+                              style={{ pointerEvents: 'none', accentColor: 'var(--gold)' }}
+                            />
+                            <div className="booking-service-info">
+                              <span className="booking-service-name">{svc.name}</span>
+                              <span className="booking-service-duration">{svc.duration} mins</span>
+                            </div>
+                          </div>
+                          <span className="booking-service-price">₹{svc.price}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Selected Services & Pricing Summary Box */}
+                <div className="booking-summary-box">
+                  <h4 className="summary-title" style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold-light)', marginBottom: '1rem', borderBottom: '1px solid rgba(229, 200, 101, 0.2)', paddingBottom: '0.5rem' }}>Selected Package Summary</h4>
+                  {selectedServices.length === 0 ? (
+                    <div className="no-services-warning" style={{ color: 'var(--gold-light)', fontStyle: 'italic', fontSize: '0.9rem' }}>
+                      No services selected yet. Please select at least one service above to proceed.
+                    </div>
+                  ) : (
+                    <>
+                      <div className="summary-list">
+                        {selectedServices.map(svc => (
+                          <div key={svc.id} className="summary-item" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--cream)' }}>
+                            <span>{svc.name} <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>({svc.duration}m)</span></span>
+                            <span>₹{svc.price}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="summary-divider" style={{ borderTop: '1px dashed rgba(229, 200, 101, 0.2)', margin: '1rem 0' }}></div>
+                      <div className="summary-stats" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.9rem' }}>
+                        <div className="summary-stat-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Services Selected:</span>
+                          <span style={{ fontWeight: 600, color: 'var(--white)' }}>{selectedServices.length}</span>
+                        </div>
+                        <div className="summary-stat-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Estimated Duration:</span>
+                          <span style={{ fontWeight: 600, color: 'var(--white)' }}>{totalDuration} mins</span>
+                        </div>
+                        <div className="summary-stat-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Subtotal:</span>
+                          <span style={{ fontWeight: 600, color: 'var(--white)' }}>₹{rawPrice}</span>
+                        </div>
+                        {hasDiscount && (
+                          <div className="summary-stat-row discount" style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981' }}>
+                            <span>10% Package Discount (3+ services):</span>
+                            <span>-₹{rawPrice - finalPrice}</span>
+                          </div>
+                        )}
+                        <div className="summary-stat-row total" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(229, 200, 101, 0.3)', paddingTop: '0.5rem', marginTop: '0.25rem', fontSize: '1.1rem', fontWeight: 700, color: 'var(--gold-light)' }}>
+                          <span>Final Total:</span>
+                          <span>₹{finalPrice}</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
 
                 <div className="form-row">
                   <div className="form-group">
